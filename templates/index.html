@@ -28,8 +28,6 @@
                     context.drawImage(video, 0, 0, 640, 480);
                     var image = canvas.toDataURL('image/png');
                     var base64Image = image.split(',')[1];
-
-                    // Send AJAX request
                     $.ajax({
                         type: "POST",
                         url: "/api",
@@ -40,7 +38,7 @@
                             if (data.api_data && data.api_data.detections) {
                                 data.api_data.detections.forEach(function(detection) {
                                     // Check if any score is above 0.95
-                                    var highScore = detection.score.find(score => score > 0.95);
+                                    var highScore = detection.score.find(score => score > 0.98);
                                     if (highScore) {
                                         // If a high score is found, display the success message
                                         var messageElement = document.getElementById('message');
