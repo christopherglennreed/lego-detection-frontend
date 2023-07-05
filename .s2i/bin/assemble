@@ -15,5 +15,4 @@ pushd /tmp/src
   pip3 install flask
 }
 
-popd
 exec /usr/libexec/s2i/assemble
