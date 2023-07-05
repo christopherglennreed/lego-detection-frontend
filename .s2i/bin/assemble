@@ -1,3 +1,4 @@
 #!/usr/bin/bash
 exec /usr/libexec/s2i/assemble
-pip install flask
+pip install flask -g
+echo "pip installed flask"
