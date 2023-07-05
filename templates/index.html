@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css">
         <style>
             body {
                 display: flex;
@@ -51,9 +50,7 @@
             <video id="video" width="640" height="480" autoplay></video>
             <img id="snap" width="640" height="480" style="display:none;">
         </div>
-        <button id="send">
-            <i class="fa-solid fa-camera fa-lg" style="color: #878787;"></i>
-        </button>
+        <button id="send">Capture</button>
         <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
         <footer>
             <p>© 2023 Lego Detection App</p>
@@ -83,21 +80,22 @@
                     var image = canvas.toDataURL('image/png');
                     snap.src = image;
                     snap.style.display = "block";
-                    var payload = {
-                        image: image.split(',')[1]
-                    };
+                    var base64Image = image.split(',')[1];
+
+                    // Send AJAX request
                     $.ajax({
-                        url: '/api',
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify(payload),
-                        success: function(response) {
-                            var data = JSON.parse(response);
-                            if (data.hasOwnProperty('api_data')) {
-                                var detections = data['api_data']['detections'];
-                                detections.forEach(function(detection) {
-                                    var score = detection['score'][0];
-                                    if (score > 0.95) {
+                        type: "POST",
+                        url: "/api",
+                        contentType: "application/json",
+                        data: JSON.stringify({ image: base64Image }),
+                        success: function(data) {
+                            console.log(data);
+                            if (data.api_data && data.api_data.detections) {
+                                data.api_data.detections.forEach(function(detection) {
+                                    // Check if any score is above 0.95
+                                    var highScore = detection.score.find(score => score > 0.95);
+                                    if (highScore) {
+                                        // If a high score is found, display the success message
                                         var messageElement = document.getElementById('message');
                                         messageElement.innerText = "You have successfully completed your Lego Model";
                                         messageElement.style.color = "lime";
