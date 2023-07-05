@@ -96,8 +96,8 @@
                             if (data.api_data && data.api_data.detections) {
                                 data.api_data.detections.forEach(function(detection) {
                                     // Check if any score is above 0.95
-                                    var highScore = detection.score.find(function(score) { return score > 0.95; });
-                                    var lowScore = detection.score.find(function(score) { return score < 0.95; });
+                                    var highScore = detection.score.find(function(score) { return score > 0.99; });
+                                    var lowScore = detection.score.find(function(score) { return score < 0.99; });
                                     if (highScore) {
                                         // If a high score is found, display the success message
                                         var messageElement = document.getElementById('message');
