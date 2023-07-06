@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             body {
                 display: flex;
@@ -34,100 +36,144 @@
             #video, #snap {
                 box-shadow: 0 0 20px rgba(0,0,0,0.5);
                 margin: 10px;
+                max-width: 100%;
+                height: auto;
             }
             .camera {
                 display: flex;
                 justify-content: center;
                 align-items: center;
+                flex-wrap: wrap;
             }
             h1 {
                 margin-top: 20px;
             }
-        </style>
-    </head>
-    <body>
-        <header>
-            <h1 id="message" style="display:none;">Lego Detection App</h1>
-        </header>
-        <div class="camera">
-            <video id="video" width="640" height="480" autoplay></video>
-            <img id="snap" width="640" height="480" style="display:none;">
-        </div>
-        <button id="send">Capture</button>
-        <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
-        <footer>
-            <p>© 2023 Lego Detection App</p>
-        </footer>
 
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-        <script>
-            window.addEventListener("DOMContentLoaded", function() {
-                var canvas = document.getElementById('canvas');
-                var context = canvas.getContext('2d');
-                var video = document.getElementById('video');
-                var snap = document.getElementById('snap');
-                var mediaConfig =  { video: true };
-                var errBack = function(e) {
-                    console.log('An error has occurred!', e)
-                };
-
-                if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia(mediaConfig).then(function(stream) {
-                        video.srcObject = stream;
-                        video.play();
-                    });
+            @media (max-width: 600px) {
+                body {
+                    flex-direction: column;
                 }
+                .camera {
+                    flex-direction: column;
+                    align-items: center;
+                }
+            }
+            .button-container {
+                display: flex;
+                justify-content: space-around;
+                width: 100%;
+                max-width: 200px;
+                margin-top: 10px;
+            }
+            button#send i {
+            font-size: 72px;    
+            color: #969696;
+            }
+            button#switch i {
+            font-size: 72px;    
+            color: #969696;
+            }
+        </style>
+</head>
+<body>
+    <header>
+        <h1 id="message" style="display:none;">Lego Detection App</h1>
+    </header>
+    <div class="camera">
+        <video id="video" width="640" height="480" autoplay></video>
+        <img id="snap" width="640" height="480" style="display:none;">
+    </div>
+    <div class="button-container">
+    <button id="send" aria-label="Capture" style="background: none; border: none; outline: none; margin-top: 40px;"><i class="fa-solid fa-camera fa-2xl" style="color: #969696;"></i></button>
+    <button id="switch" aria-label="Switch Camera" style="background: none; border: none; outline: none; margin-top: 40px;"><i class="fa-solid fa-refresh fa-2xl" style="color: #969696; font-size: 50px;"></i>
+    </button>
+    </div>
+    <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+    <footer>
+        <p>© 2023 Lego Detection App</p>
+    </footer>
 
-                document.getElementById('send').addEventListener('click', function() {
-                    context.drawImage(video, 0, 0, 640, 480);
-                    var image = canvas.toDataURL('image/png');
-                    snap.src = image;
-                    snap.style.display = "block";
-                    var base64Image = image.split(',')[1];
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        window.addEventListener("DOMContentLoaded", function() {
+            var canvas = document.getElementById('canvas');
+            var context = canvas.getContext('2d');
+            var video = document.getElementById('video');
+            var front = false;
+            var snap = document.getElementById('snap');
+            var mediaConfig =  { video: { facingMode: (front? "user" : "environment") } };
+            var errBack = function(e) {
+                console.log('An error has occurred!', e)
+            };
 
-                    // Send AJAX request
-                    $.ajax({
-                        type: "POST",
-                        url: "/api",
-                        contentType: "application/json",
-                        data: JSON.stringify({ image: base64Image }),
-                        success: function(data) {
-                            console.log(data);
-                            if (data.api_data && data.api_data.detections) {
-                                data.api_data.detections.forEach(function(detection) {
-                                    // Check if any score is above 0.95
-                                    var highScore = detection.score.find(function(score) { return score > 0.99; });
-                                    var lowScore = detection.score.find(function(score) { return score < 0.99; });
-                                    if (highScore) {
-                                        // If a high score is found, display the success message
-                                        var messageElement = document.getElementById('message');
-                                        messageElement.innerText = "You have successfully completed your Lego Model";
-                                        messageElement.style.color = "lime";
-                                        messageElement.style.display = "block";
-                                        snap.style.borderColor = "lime";
-                                        snap.style.borderWidth = "5px";
-                                        snap.style.borderStyle = "solid";
-                                    }
-                                    else if (lowScore){
-                                        // If a high score is found, display the success message
-                                        var messageElement = document.getElementById('message');
-                                        messageElement.innerText = "Either you took a really bad photo, or you needs to keep trying";
-                                        messageElement.style.color = "yellow";
-                                        messageElement.style.display = "block";
-                                        snap.style.borderColor = "Yellow";
-                                        snap.style.borderWidth = "5px";
-                                        snap.style.borderStyle = "solid";
-                                    }
-                                });
-                            }
-                        },
-                        error: function(err) {
-                            console.log(err);
-                        }
-                    });
+            if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia(mediaConfig).then(function(stream) {
+                    video.srcObject = stream;
+                    video.play();
                 });
-
+            }
+            
+            document.getElementById('switch').addEventListener('click', function() {
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                }
+                front = !front;
+                mediaConfig = { video: { facingMode: (front? "user" : "environment") } };
+                navigator.mediaDevices.getUserMedia(mediaConfig).then(function(stream) {
+                    video.srcObject = stream;
+                    video.play();
+                });
             });
-        </script>
-    </body>
+            document.getElementById('send').addEventListener('click', function() {
+                context.drawImage(video, 0, 0, 640, 480);
+                var image = canvas.toDataURL('image/png');
+                snap.src = image;
+                snap.style.display = "block";
+                var base64Image = image.split(',')[1];
+
+                // Send AJAX request
+                $.ajax({
+                    type: "POST",
+                    url: "/api",
+                    contentType: "application/json",
+                    data: JSON.stringify({ image: base64Image }),
+                    success: function(data) {
+                        console.log(data);
+                        if (data.api_data && data.api_data.detections) {
+                            data.api_data.detections.forEach(function(detection) {
+                                // Check if any score is above 0.95
+                                var highScore = detection.score.find(function(score) { return score > 0.99; });
+                                var lowScore = detection.score.find(function(score) { return score < 0.99; });
+                                if (highScore) {
+                                    // If a high score is found, display the success message
+                                    var messageElement = document.getElementById('message');
+                                    messageElement.innerText = "You have successfully completed your Lego Model";
+                                    messageElement.style.color = "lime";
+                                    messageElement.style.display = "block";
+                                    snap.style.borderColor = "lime";
+                                    snap.style.borderWidth = "5px";
+                                    snap.style.borderStyle = "solid";
+                                }
+                                else if (lowScore){
+                                    // If a high score is found, display the success message
+                                    var messageElement = document.getElementById('message');
+                                    messageElement.innerText = "Either you took a really bad photo, or you need to keep building your legos";
+                                    messageElement.style.color = "yellow";
+                                    messageElement.style.display = "block";
+                                    snap.style.borderColor = "Yellow";
+                                    snap.style.borderWidth = "5px";
+                                    snap.style.borderStyle = "solid";
+                                }
+                            });
+                        }
+                    },
+                    error: function(err) {
+                        console.log(err);
+                    }
+                });
+            });
+
+        });
+    </script>
+</body>
 </html>
