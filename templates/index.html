@@ -89,9 +89,11 @@
     </button>
     </div>
     <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+    <input type="file" id="cameraInput" style="display: none;" accept="image/*" capture="camera">
     <footer>
         <p>© 2023 Lego Detection App</p>
     </footer>
+
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script>
@@ -105,14 +107,61 @@
             var errBack = function(e) {
                 console.log('An error has occurred!', e)
             };
-
-            if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    
+            // Function to check if the device is a mobile device
+            function isMobileDevice() {
+                return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+            };
+    
+            var isMobile = isMobileDevice();
+    
+            var cameraInput = document.getElementById('cameraInput');
+    
+            if (isMobile) {
+                // If mobile, the capture button should open the camera input
+                document.getElementById('send').onclick = function() {
+                    cameraInput.click();
+                }
+    
+                cameraInput.addEventListener('change', function(e) {
+                    // Get the file from the input
+                    var file = e.target.files[0];
+    
+                    // Create a new FileReader object
+                    var reader = new FileReader();
+    
+                    reader.onloadend = function() {
+                        // When the FileReader is done reading the file,
+                        // draw the image to the canvas and send an AJAX request with the file data
+                        var base64Image = reader.result.split(',')[1];
+                        snap.src = reader.result;
+                        snap.style.display = "block";
+    
+                        sendRequest(base64Image);
+                    }
+    
+                    // Start reading the file
+                    if (file) {
+                        reader.readAsDataURL(file);
+                    }
+                });
+            } else {
+                // On non-mobile devices, autoplay.
                 navigator.mediaDevices.getUserMedia(mediaConfig).then(function(stream) {
                     video.srcObject = stream;
                     video.play();
                 });
+    
+                document.getElementById('send').addEventListener('click', function() {
+                    context.drawImage(video, 0, 0, 640, 480);
+                    var image = canvas.toDataURL('image/png');
+                    snap.src = image;
+                    snap.style.display = "block";
+                    var base64Image = image.split(',')[1];
+                    sendRequest(base64Image);
+                });
             }
-            
+    
             document.getElementById('switch').addEventListener('click', function() {
                 if (video.srcObject) {
                     video.srcObject.getTracks().forEach(track => track.stop());
@@ -124,56 +173,49 @@
                     video.play();
                 });
             });
-            document.getElementById('send').addEventListener('click', function() {
-                context.drawImage(video, 0, 0, 640, 480);
-                var image = canvas.toDataURL('image/png');
-                snap.src = image;
-                snap.style.display = "block";
-                var base64Image = image.split(',')[1];
 
-                // Send AJAX request
-                $.ajax({
-                    type: "POST",
-                    url: "/api",
-                    contentType: "application/json",
-                    data: JSON.stringify({ image: base64Image }),
-                    success: function(data) {
-                        console.log(data);
-                        if (data.api_data && data.api_data.detections) {
-                            data.api_data.detections.forEach(function(detection) {
-                                // Check if any score is above 0.95
-                                var highScore = detection.score.find(function(score) { return score > 0.99; });
-                                var lowScore = detection.score.find(function(score) { return score < 0.99; });
-                                if (highScore) {
-                                    // If a high score is found, display the success message
-                                    var messageElement = document.getElementById('message');
-                                    messageElement.innerText = "You have successfully completed your Lego Model";
-                                    messageElement.style.color = "lime";
-                                    messageElement.style.display = "block";
-                                    snap.style.borderColor = "lime";
-                                    snap.style.borderWidth = "5px";
-                                    snap.style.borderStyle = "solid";
-                                }
-                                else if (lowScore){
-                                    // If a high score is found, display the success message
-                                    var messageElement = document.getElementById('message');
-                                    messageElement.innerText = "Either you took a really bad photo, or you need to keep building your legos";
-                                    messageElement.style.color = "yellow";
-                                    messageElement.style.display = "block";
-                                    snap.style.borderColor = "Yellow";
-                                    snap.style.borderWidth = "5px";
-                                    snap.style.borderStyle = "solid";
-                                }
-                            });
-                        }
-                    },
-                    error: function(err) {
-                        console.log(err);
+        function sendRequest(base64Image) {
+            // Send AJAX request
+            $.ajax({
+                type: "POST",
+                url: "/api",
+                contentType: "application/json",
+                data: JSON.stringify({ image: base64Image }),
+                success: function(data) {
+                    console.log(data);
+                    if (data.api_data && data.api_data.detections) {
+                        data.api_data.detections.forEach(function(detection) {
+                            // Check if any score is above 0.95
+                            var highScore = detection.score.find(function(score) { return score > 0.99; });
+                            var lowScore = detection.score.find(function(score) { return score < 0.99; });
+                            if (highScore) {
+                                var messageElement = document.getElementById('message');
+                                messageElement.innerText = "You have successfully completed your Lego Model";
+                                messageElement.style.color = "lime";
+                                messageElement.style.display = "block";
+                                snap.style.borderColor = "lime";
+                                snap.style.borderWidth = "5px";
+                                snap.style.borderStyle = "solid";
+                            }
+                            else if (lowScore){
+                                // If a low score is found, display the success message
+                                var messageElement = document.getElementById('message');
+                                messageElement.innerText = "Either you took a really bad photo, or you need to keep building your legos";
+                                messageElement.style.color = "yellow";
+                                messageElement.style.display = "block";
+                                snap.style.borderColor = "Yellow";
+                                snap.style.borderWidth = "5px";
+                                snap.style.borderStyle = "solid";
+                            }
+                        });
                     }
-                });
+                },
+                error: function(err) {
+                    console.log(err);
+                }
             });
-
-        });
-    </script>
-</body>
+        }
+    });
+</script>
+</body> 
 </html>
